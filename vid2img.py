@@ -17,7 +17,7 @@ class Vid2Img:
 
     def make_outdir(self):
         if not self.outdir:
-            self.outdir = Path(self.path.stem)
+            self.outdir = Path("extracted")/self.path.stem
         if not self.outdir.exists():
             self.outdir.mkdir(exist_ok=True, parents=True)
 
@@ -27,16 +27,14 @@ class Vid2Img:
 
     def save_frames(self, parallel):
         if parallel:
-            self.set_positions()
-            proc = [delayed(self.save_block)(self.get_block(core)) for core in range(self.cores)]
+            block = self.cnt // (self.cores-1)
+            self.positions = list(range(0, self.cnt, block))
+            proc = [delayed(self.save_block)(self.get_block(core), block) for core in range(self.cores)]
             Parallel(n_jobs=self.cores, backend='threading', verbose=1)(proc)
         else:
+            block = self.cnt
             vid = cv2.VideoCapture(str(self.path))
-            self.save_block(vid)
-
-    def set_positions(self):
-        self.one_block = self.cnt // (self.cores-1)
-        self.positions = list(range(0, self.cnt, self.one_block))
+            self.save_block(vid, block)
 
     def get_block(self, i):
         vid = cv2.VideoCapture(str(self.path))
@@ -44,13 +42,12 @@ class Vid2Img:
         vid.set(cv2.CAP_PROP_POS_FRAMES, start)
         return vid
 
-    def save_block(self, vid):
-        for idx in range(self.one_block):
+    def save_block(self, vid, block):
+        for idx in range(block):
             frame_cnt = int(vid.get(cv2.CAP_PROP_POS_FRAMES))
-            if frame_cnt % self.interval == 0:
-                ret, frame = vid.read()
-                if ret:
-                    cv2.imwrite(f"{Path(self.outdir)/str(frame_cnt)}.png", frame)
+            ret, frame = vid.read()
+            if frame_cnt % self.interval == 0 and ret:
+                cv2.imwrite(f"{Path(self.outdir)/str(frame_cnt)}.png", frame)
 
 
 if __name__ == '__main__':
