@@ -24,18 +24,18 @@ class Vid2Img:
 
     def read_vid(self):
         vid = cv2.VideoCapture(str(self.path))
-        self.cnt = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.frame_cnt = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def save_frames(self, parallel):
         if parallel:
-            block = self.cnt // (self.cores-1)
-            self.positions = list(range(0, self.cnt, block))
-            proc = [delayed(self.save_block)(self.get_block(core), block) for core in range(self.cores)]
+            self.block = self.frame_cnt // (self.cores-1)
+            self.positions = list(range(0, self.frame_cnt, self.block))
+            proc = [delayed(self.save_block)(self.get_block(core)) for core in range(self.cores)]
             Parallel(n_jobs=self.cores, backend='threading', verbose=1)(proc)
         else:
-            block = self.cnt
+            self.block = self.frame_cnt
             vid = cv2.VideoCapture(str(self.path))
-            self.save_block(vid, block)
+            self.save_block(vid)
 
     def get_block(self, i):
         vid = cv2.VideoCapture(str(self.path))
@@ -43,8 +43,8 @@ class Vid2Img:
         vid.set(cv2.CAP_PROP_POS_FRAMES, start)
         return vid
 
-    def save_block(self, vid, block):
-        for idx in range(block):
+    def save_block(self, vid):
+        for idx in range(self.block):
             frame_cnt = int(vid.get(cv2.CAP_PROP_POS_FRAMES))
             ret, frame = vid.read()
             if frame_cnt % self.interval == 0 and ret:

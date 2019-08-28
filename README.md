@@ -22,6 +22,3 @@ python vid2img.py [-h] [-o OUTDIR] [-i INTERVAL] [-e EXTENTION] [-p] path
 ```
 python vid2img.py path -o extracted -i 60 -e png
 ```
-
-# Be careful
-- If the code run in parallel, memory loads vid-size * cpu_cores of data because the threads cannot share cv2.VideoCapture object.
